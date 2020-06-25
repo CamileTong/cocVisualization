@@ -4,14 +4,14 @@
 # |/__\|/__\|/__\|/__\|/__\|/__\|
 # 2020 June 26, v1, @馄饨
 # 跑团数据可视化工具
-# Contact：qq2558045098
+# Contact：qq 2558045098
 # 使用前请确保
 # 1. csv文件和functions.R文件在同一目录下
 # 2. csv文件变量名同示例一致
 # 3. 在此界面导航栏Session -> Set Working Directory -> To Source File Location
 
 df <- read.csv("loulan.csv", stringsAsFactors = FALSE) # 将loulan.csv替换为csv文件名
-# 如果是第一次运行本程序，运行这两行（之后就不用了）
+# 如果是第一次运行本程序，运行这两行（之后不用了）
 # install.packages("dplyr")
 # install.packages("ggplot2")
 
@@ -50,7 +50,7 @@ mynamestheme <-
     )
   
   # Failure Rate 计算角色掷骰失败率
-  failplot <- ggplot(data = player_df) +
+  ggplot(data = player_df) +
     geom_bar(mapping = aes(x = character, y = rate, 
                            fill = character), stat = "identity") +
     ggtitle("角色掷骰失败率") +
@@ -63,7 +63,7 @@ mynamestheme <-
     scale_fill_brewer(palette="YlGnBu")
   
   # Extreme Failure Rate 计算角色掷骰大失败率
-  extremeF_plot <- ggplot(data = player_df) +
+  ggplot(data = player_df) +
     geom_bar(mapping = aes(x = character, y = extremeF, 
                            fill = character), stat = "identity") +
     ggtitle("角色掷骰大失败率") +
@@ -76,7 +76,7 @@ mynamestheme <-
     scale_fill_brewer(palette="YlGnBu")
   
   # Extreme Success Rate 计算角色掷骰大成功率
-  extremeS_plot <- ggplot(data = player_df) +
+  ggplot(data = player_df) +
     geom_bar(mapping = aes(x = character, y = extremeS, 
                            fill = character), stat = "identity") +
     ggtitle("角色掷骰大成功率") +
@@ -89,7 +89,7 @@ mynamestheme <-
     scale_fill_brewer(palette="YlGnBu")
   
   # Number of Dices 计算角色掷骰数
-  dices_num <- ggplot(data = player_df) +
+  ggplot(data = player_df) +
     geom_bar(mapping = aes(x = character, y = sum, 
                            fill = character), stat = "identity") +
     ggtitle("角色掷骰数") +
@@ -108,14 +108,14 @@ mynamestheme <-
     mutate(result = dice - skill) %>%
     group_by(type) %>%
     summarise("sum" = length(result),
-              "fail" = length(dice[result <= 0]),
+              "success" = length(dice[result <= 0]),
               "rate" = round(length(dice[result <= 0]) / length(result), 2)
     ) %>%
     arrange(desc(sum)) %>%
     head(9)
   
   # Failure Rate 计算使用率前九的技能成功率
-  skillplot <- ggplot(data = skill_df) +
+  ggplot(data = skill_df) +
     geom_bar(mapping = aes(x = type, y = rate, 
                            fill = type), stat = "identity") +
     ggtitle("技能成功率") +
@@ -123,4 +123,44 @@ mynamestheme <-
     mynamestheme +
     scale_fill_brewer(palette="YlGnBu") +
     coord_flip()
+
+# v1.2 新增
+# Single Player Report
+  name <- "伟大的天父和救主克苏鲁" # 更换为意向角色名
+  
+  single_player_df <- df %>%
+    filter(character == name) %>%
+    mutate(result = dice - skill) %>%
+    summarise("sum" = length(result),
+              "success" = length(dice[result <= 0]),
+              "rate" = round(length(dice[result <= 0]) / length(result), 4) * 100,
+              "extremeF" = length(dice[dice >= 95]),
+              "extremeS" = length(dice[dice <= 5])
+    )
+  
+  single_player_skill_df <- df %>%
+    filter(character == name) %>%
+    mutate(result = dice - skill) %>%
+    group_by(type) %>%
+    summarise("sum" = length(result),
+              "success_rate" = round(length(dice[result <= 0]) / length(result), 4) * 100) %>%
+    arrange(desc(sum)) %>%
+    head(3) # 使用频率最高的N个技能
+  
+  skill_helper <- function(df) {
+    ret = ""
+    for(a in 1:length(df$type)) {
+      ret = paste0(ret, df$type[[a]], "(使用", df$sum[[a]], "次，成功率",
+                   df$success_rate[[a]], "%), ")
+    }
+    return(ret)
+  }
+  ret <- skill_helper(single_player_skill_df)
+    
+  # 玩家掷骰总结
+  print(paste0("玩家", name, "在本次事件中进行了", single_player_df$sum, "次检定，成功"
+        , single_player_df$success, "次，成功率为", single_player_df$rate,
+          "%。其中大失败", single_player_df$extremeF, "次，大成功", single_player_df$extremeS,
+        "次。使用频率最高的", length(single_player_skill_df$type), "个技能为", ret, "最终结局为____。"))
+
 
